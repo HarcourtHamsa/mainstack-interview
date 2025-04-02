@@ -10,6 +10,9 @@ COPY package*.json ./
 # Install all dependencies (including dev dependencies)
 RUN npm install
 
+# Build the project
+RUN npm run build
+
 # Rebuild bcrypt for ARM64
 RUN npm rebuild bcrypt
 
