@@ -1,0 +1,81 @@
+version: "3.8"
+
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "80:80"
+    volumes:
+      - ./:/app
+      - /app/node_modules
+    depends_on:
+      - mongo1
+      - mongo2
+      - redis
+    env_file:
+      - .env
+    restart: unless-stopped
+    networks:
+      - mainstack-app-network
+
+  mongo1:
+    image: mongo:latest
+    volumes:
+      - mongodb_data_1:/data/db
+    ports:
+      - "27017:27017"
+    restart: unless-stopped
+    networks:
+      - mainstack-app-network
+    command: mongod --replSet myReplicaSet --bind_ip localhost,mongo1
+
+  mongo2:
+    image: mongo:latest
+    volumes:
+      - mongodb_data_2:/data/db
+    ports:
+      - "27018:27017"
+    restart: unless-stopped
+    networks:
+      - mainstack-app-network
+    command: mongod --replSet myReplicaSet --bind_ip localhost,mongo2
+
+  mongo-init:
+    image: mongo:latest
+    restart: "no"
+    networks:
+      - mainstack-app-network
+    depends_on:
+      - mongo1
+      - mongo2
+    command: >
+      mongosh --host mongo1:27017 --eval '
+      rs.initiate({
+        _id: "myReplicaSet",
+        members: [
+          {_id: 0, host: "mongo1:27017"},
+          {_id: 1, host: "mongo2:27017"}
+        ]
+      })
+      '
+
+  redis:
+    image: redis:alpine
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+    restart: unless-stopped
+    networks:
+      - mainstack-app-network
+
+volumes:
+  mongodb_data_1:
+  mongodb_data_2:
+  redis_data:
+
+networks:
+  mainstack-app-network:
+    driver: bridge
