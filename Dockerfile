@@ -7,20 +7,20 @@ WORKDIR /app
 # Copy package files first
 COPY package*.json ./
 
-# Install all dependencies (including dev dependencies)
-RUN npm install
+# Install ALL dependencies (including dev dependencies)
+RUN npm install --include=dev  # Explicitly include dev dependencies
 
-# Build the project
-RUN npm run build
-
-# Rebuild bcrypt for ARM64
-RUN npm rebuild bcrypt
-
-# Copy the rest of the application code
+# Copy source code *before* building
 COPY . .
+
+# Build the TypeScript project
+RUN npm run build  # Now tsc can access your .ts files
+
+# Rebuild bcrypt for ARM64 if needed
+RUN npm rebuild bcrypt
 
 # Expose the port the app runs on
 EXPOSE 80
 
-# Start the application in watch mode
+# Start the application
 CMD ["npm", "run", "start"]
